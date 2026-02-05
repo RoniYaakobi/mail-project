@@ -1,0 +1,39 @@
+from client.pages.page import Page, PageType
+from tkinter import messagebox
+
+
+
+class SignUpPage(Page):
+    PAGE_TYPE = PageType.SIGNUP
+    def __init__(self, parent, controller):
+        super().__init__(parent, controller)
+
+        self.set_title(text="Sign Up")
+
+        self.signup_username = self.create_field(text="Username:")
+        self.signup_username.pack()
+
+        self.signup_email = self.create_field(text="Email:")
+        self.signup_email.pack()
+
+        self.signup_password = self.create_field(text="Password:", hidden= True)
+        self.signup_password.pack()
+
+        self.confirm_password = self.create_field(text="Confirm Password:", hidden= True)
+        self.confirm_password.pack(pady=(0,10))
+
+        self.create_action_button("Sign Up", self.signup_action, pack_pady=5)
+        self.add_link(page_type=PageType.LOGIN, text="Back To Login")
+
+    def signup_action(self):
+        username = self.signup_username.get()
+        email = self.signup_email.get()
+
+        password = self.signup_password.get()
+        confirm = self.confirm_password.get()
+
+
+        if confirm == password:
+            messagebox.showinfo("Sign Up", f"Account created for {username}!")
+        else:
+            messagebox.showerror("Sign Up", f"Password does not match the confirmation password!")

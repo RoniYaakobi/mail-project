@@ -3,7 +3,7 @@ from tkinter import messagebox
 
 
 class LoginPage(Page):
-    PAGE_TYPE = PageType.LOGIN
+    PAGE_ID = PageType.assign_id("login")
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
 
@@ -17,8 +17,8 @@ class LoginPage(Page):
 
         self.create_action_button("Login", self.login_action, pack_pady=5)
 
-        self.add_link(page_type=PageType.SIGNUP, text="Sign Up")
-        self.add_link(page_type=PageType.FORGOT, text="Forgot Password?",pack_pady=5)
+        self.add_link(page_type=PageType.identify("signup"), text="Sign Up")
+        self.add_link(page_type=PageType.identify("forgot"), text="Forgot Password?",pack_pady=5)
 
     def login_action(self):
         username = self.login_username.get()

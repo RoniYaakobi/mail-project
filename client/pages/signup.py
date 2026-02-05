@@ -4,7 +4,7 @@ from tkinter import messagebox
 
 
 class SignUpPage(Page):
-    PAGE_TYPE = PageType.SIGNUP
+    PAGE_ID = PageType.assign_id("signup")
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
 
@@ -23,7 +23,7 @@ class SignUpPage(Page):
         self.confirm_password.pack(pady=(0,10))
 
         self.create_action_button("Sign Up", self.signup_action, pack_pady=5)
-        self.add_link(page_type=PageType.LOGIN, text="Back To Login")
+        self.add_link(page_type=PageType.identify("login"), text="Back To Login")
 
     def signup_action(self):
         username = self.signup_username.get()

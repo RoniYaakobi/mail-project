@@ -3,7 +3,7 @@ from tkinter import messagebox
 
 
 class ForgotPage(Page):
-    PAGE_TYPE = PageType.FORGOT
+    PAGE_ID = PageType.assign_id("forgot")
     def __init__(self, parent, controller):
         super().__init__(parent, controller)
 
@@ -15,7 +15,7 @@ class ForgotPage(Page):
 
         self.create_action_button("Send Reset Link", self.forgot_action, pack_pady=5)
         
-        self.add_link(page_type=PageType.LOGIN, text="Back to Login")
+        self.add_link(page_type=PageType.identify("login"), text="Back to Login")
 
     def forgot_action(self):
         email = self.forgot_email.get()

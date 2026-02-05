@@ -1,17 +1,25 @@
-from enum import Enum
-
 import tkinter as tk
 from tkinter import messagebox
 
-class PageType(Enum):
-    BLANK = 0
-    LOGIN = 1
-    SIGNUP = 2
-    FORGOT = 3
+class PageType:
+    ids_to_names = dict()
+    names_to_ids = dict()
+    page_types = 0
+
+    @staticmethod
+    def assign_id(name):
+        PageType.page_types += 1
+        PageType.ids_to_names = {PageType.page_types: name, **PageType.ids_to_names}
+        PageType.names_to_ids = {name: PageType.page_types, **PageType.names_to_ids}
+        return PageType.page_types
+
+    @staticmethod
+    def identify(name):
+        return PageType.names_to_ids.get(name)
 
 
 class Page(tk.Frame):
-    PAGE_TYPE = PageType.BLANK
+    PAGE_ID = PageType.assign_id("plain")
 
     def __init__(self, parent, controller):
         super().__init__(parent)
@@ -21,7 +29,6 @@ class Page(tk.Frame):
         self.controller = controller  # PageManager / App
 
     def show(self):
-        print(self.links)
         self.tkraise()
 
     def set_title(self, text="Title", font=("Arial", 20)):

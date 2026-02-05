@@ -23,17 +23,17 @@ class App(tk.Tk):
 
         for PageClass in (LoginPage, SignUpPage, ForgotPage):
             page = PageClass(container, self)
-            self.pages[PageClass.PAGE_TYPE] = page
+            self.pages[PageClass.PAGE_ID] = page
 
             page.grid(row=0, column=0, sticky="nsew")
 
         for page in self.pages.values():
-            for page_type in page.get_links().keys():
-                print(page_type)
-                page.set_link(page_type, self.pages.get(page_type,page))
+            for page_id in page.get_links().keys():
+                print(page_id)
+                page.set_link(page_id, self.pages.get(page_id,page))
 
 
-        self.show_page(LoginPage.PAGE_TYPE)
+        self.show_page(LoginPage.PAGE_ID)
 
     def show_page(self, page_class):
         self.pages[page_class].show()

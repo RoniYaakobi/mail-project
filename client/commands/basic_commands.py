@@ -3,6 +3,7 @@ from typing import Callable
 
 class Command:
     def __init__(self,
+                controller,
                 initialize : Callable[[None], None] = lambda: None,
                 execute : Callable[[None], None] = lambda: None, 
                 is_finished : Callable[[None],bool] = lambda: False, 
@@ -13,7 +14,7 @@ class Command:
         self.is_finished = is_finished
         self.end = end
         self.active = False
-        self.ID = CommandScheduler.register_command(self)
+        self.ID = controller.scheduler.register_command(self)
     
     def activate(self):
         self.active = True
@@ -24,7 +25,7 @@ class Command:
         self.end(interrupted)
 
 class CommandScheduler:
-    def __init__(self, root: tk.TK, period = 10):
+    def __init__(self, root: tk.Tk, period = 10):
         self.root = root
         self.period = period
         self.commands = []

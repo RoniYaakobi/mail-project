@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox
+from client.commands.basic_commands import Command
 
 class PageType:
     ids_to_names = dict()
@@ -30,9 +31,38 @@ class Page(tk.Frame):
 
     def show(self):
         self.tkraise()
+        self.controller.current_page = __class__.PAGE_ID
 
     def set_title(self, text="Title", font=("Arial", 20)):
         tk.Label(self, text=text, font=font).pack(pady=10)
+
+    def create_text_box(self, name, update_command, getter, pack_padx=0, pack_pady=0):
+        text_box_style = {
+            "bg":"white",
+            "fg":"black",
+            "relief":"sunken",
+            "bd":2,
+            "anchor":"w",      
+            "padx":4,
+            "pady":2
+        }
+
+
+        tk.Label(self, text=name).pack()
+        text = tk.Label(self,**text_box_style)
+        text.configure(text=getter())
+        print(getter())
+        
+        def update_text():
+            update_command()
+            text.configure(text=getter())
+        
+        command = Command(self.controller,execute=update_text)
+
+        self.controller.scheduler.schedule(command)
+
+        text.pack(fill="x", padx=pack_padx, pady=pack_pady)
+
 
     def create_field(self, text="field", hidden= False):
         tk.Label(self, text=text).pack()

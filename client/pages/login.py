@@ -25,5 +25,6 @@ class LoginPage(Page):
         password = self.login_password.get()
         if username == "user" and password == "pass":
             messagebox.showinfo("Login", "Login successful!")
+            self.controller.show_page(PageType.identify("messenger"))
         else:
             messagebox.showerror("Login", "Invalid username or password!")

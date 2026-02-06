@@ -14,7 +14,12 @@ class MessengerPage(Page):
 
         self.message = self.create_field("Message:")
         self.message.pack()
+
+        self.errors = []
+        self.create_text_box("Errors", self.update_errors, self.get_errors, pack_padx=5, pack_pady=5)
         
+        self.messages = []
+        self.create_text_box("Messages", self.update_messages, self.get_messages, pack_padx=5, pack_pady=5)
 
         self.create_action_button("Send", self.send_action, pack_pady=5)
         
@@ -23,5 +28,17 @@ class MessengerPage(Page):
     def send_action(self):
         recipent = self.recipent.get()
         message = self.message.get()
-        messagebox.showinfo("Sent Message", f"Password reset link sent to {recipent}!")
+        self.messages.append(message)
+        messagebox.showinfo("Sent Message", f"Sent message to {recipent}!")
 
+    def update_errors(self):
+        self.errors = ["bruh"]
+
+    def get_errors(self):
+        return "\n".join(self.errors)
+    
+    def update_messages(self):
+        pass
+
+    def get_messages(self):
+        return "\n".join(self.messages)

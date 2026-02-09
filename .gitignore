@@ -2,3 +2,5 @@
 client/__pycache__/
 
 protocol/__pycache__/
+
+*.pyc

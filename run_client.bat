@@ -1,2 +1,2 @@
-py -m client.backend
+py -m client.GUI
 pause

@@ -1,6 +1,6 @@
 import threading
 
-from protocol.tcp_socket import TcpSocket
+from protocol.tcp_server import TcpServer
 from protocol.AsyncMessages import AsyncMessages
 from protocol.protocol_constants import ProtocolConstants
 from server.server_constants import ServerConstants
@@ -8,7 +8,7 @@ from server.database import DataBase
 
 class Server:
     def __init__(self):
-        self.server = TcpSocket()
+        self.server = TcpServer()
         self.server.bind(ServerConstants.ADDR)
         self.server.listen(5)
         self.async_messages = AsyncMessages()
@@ -43,7 +43,7 @@ class Server:
         self.async_messages.delete_socket(client)
 
 
-    def listen_to_client(self, client: TcpSocket):
+    def listen_to_client(self, client: TcpServer):
         while True:
             with self.thread_dict_lock:
                 terminate = self.clients_to_threads[0]
@@ -66,7 +66,7 @@ class Server:
 
             client.send_with_size(ProtocolConstants.CODES["receive"], self.async_messages.get_async_messages_to_send(client))
 
-    def business_logic(self, client: TcpSocket):
+    def business_logic(self, client: TcpServer):
         while True:
             with self.thread_dict_lock:
                 terminate = self.clients_to_threads[0]

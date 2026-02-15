@@ -4,7 +4,7 @@ import threading
 from dataclasses import dataclass
 
 from protocol.AsyncMessages import AsyncMessages
-from protocol.tcp_socket import TcpSocket
+from protocol.tcp_client import TcpClient
 from protocol.protocol_constants import ProtocolConstants
 from client.backend_constants import BackendConstants
 
@@ -20,7 +20,7 @@ class ErrorMessage(Message):
 class AppBackend:
     def __init__(self):
         super().__init__()
-        self.socket = TcpSocket()
+        self.socket = TcpServer()
         self.socket.connect(BackendConstants.SERVER_ADDR)
         self.messages = []
         self.errors = []

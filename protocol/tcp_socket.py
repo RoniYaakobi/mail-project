@@ -60,3 +60,8 @@ class TcpSocket(socket.socket):
         code = message[:3]
         fields = message[3:].split(TcpSocket.FIELD_DELIMETER)
         return code, fields
+
+    def deconstruct_response(self, message):
+        code = message[:3]
+        fields = message[3:].split(TcpSocket.FIELD_DELIMETER)
+        return code, fields

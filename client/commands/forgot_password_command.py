@@ -4,6 +4,8 @@ from client.commands.basic_commands import Command
 
 from protocol.protocol_constants import ProtocolConstants
 
+from client.pages.login import LoginPage
+
 
 class ForgotPasswordCommand(Command):
     def __init__(self, controller, email, *args, **kwargs):
@@ -21,7 +23,7 @@ class ForgotPasswordCommand(Command):
             self.cancel()
 
     def is_finished(self):
-        messages, errors = self.controller.backend().get_response(ProtocolConstants.CODES["forgot"])
+        messages, errors = self.controller.backend().get_messages_of_type(ProtocolConstants.CODES["forgot"])
 
         if len(errors) > 0:
             self.has_errors = True
@@ -33,6 +35,7 @@ class ForgotPasswordCommand(Command):
     def end(self, interrupted):
         if not interrupted:
             messagebox.showinfo("Forgot Password", f"Sent reset email to {self.email}")
+            self.controller.goto(LoginPage.PAGE_ID)
         elif self.has_errors:
             messagebox.showerror("Forgot Password", f"Failed to send reset email.")
         else:

@@ -6,7 +6,7 @@ class Command:
                 controller,
                 initialize : Callable[[object], None] = lambda: None,
                 execute : Callable[[object], None] = lambda: None, 
-                is_finished : Callable[[object],bool] = lambda: False, 
+                is_finished : Callable[[object],bool] = lambda: True, 
                 end : Callable[[object,bool],None] = lambda inturrepted: None):
         
         self.controller = controller

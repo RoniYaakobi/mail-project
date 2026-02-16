@@ -54,6 +54,7 @@ class TcpClient(socket.socket):
 
         
     def build_request(self, code, *args):
+        print(args)
         return code + TcpClient.FIELD_DELIMETER.join(args)
     
 

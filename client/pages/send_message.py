@@ -1,5 +1,9 @@
-from client.pages.page import Page, PageType
 from tkinter import messagebox
+
+from protocol.protocol_constants import ProtocolConstants
+from client.pages.page import Page, PageType
+from client.commands.send_message_command import SendMessageCommand
+
 
 
 class MessengerPage(Page):
@@ -26,19 +30,30 @@ class MessengerPage(Page):
         self.add_link(page_type=PageType.identify("login"), text="Back to Login")
 
     def send_action(self):
-        recipent = self.recipent.get()
+        recipents = self.recipent.get().split(",")
         message = self.message.get()
-        self.messages.append(message)
-        messagebox.showinfo("Sent Message", f"Sent message to {recipent}!")
+
+        self.messages.append(f"You: {message}")
+
+        self.scheduler().schedule(SendMessageCommand(self, message, recipents))
+        
+        
 
     def update_errors(self):
-        self.errors = ["bruh"]
+        new_errors, _ = self.backend().get_messages_of_type(ProtocolConstants.CODES["error"])
+        
+        new_errors = [f"{new_error.code}: {",".join(new_error.fields)}" for new_error in new_errors]
+        self.errors += new_errors
 
     def get_errors(self):
         return "\n".join(self.errors)
     
     def update_messages(self):
-        pass
+        new_messages, _ = self.backend().get_messages_of_type(ProtocolConstants.CODES["recieve"])
+        
+        new_messages = [f"{message.fields[0]}: {message.fields[1]}" for message in new_messages]
+        self.messages += new_messages
 
     def get_messages(self):
+        print("get")
         return "\n".join(self.messages)

@@ -4,6 +4,8 @@ from client.commands.basic_commands import Command
 
 from protocol.protocol_constants import ProtocolConstants
 
+from client.pages.login import LoginPage
+
 
 class RegisterCommand(Command):
     def __init__(self, controller, username, email, password, confirm, *args, **kwargs):
@@ -30,7 +32,7 @@ class RegisterCommand(Command):
             self.cancel()
 
     def is_finished(self):
-        messages, errors = self.controller.backend().get_response(ProtocolConstants.CODES["register"])
+        messages, errors = self.controller.backend().get_messages_of_type(ProtocolConstants.CODES["register"])
         if len(errors) > 0:
             self.username_taken = True
             self.cancel()
@@ -40,6 +42,7 @@ class RegisterCommand(Command):
     def end(self, interrupted):
         if not interrupted:
             messagebox.showinfo("Register", f"Registered {self.username}")
+            self.controller.goto(LoginPage.PAGE_ID)
         elif self.username_taken:
             messagebox.showerror("Register", f"Username {self.username} was taken")
         elif not self.passwords_matching:

@@ -4,7 +4,7 @@ class ProtocolConstants:
         "register" : "RGS",
         "forgot" : "FRG",
         "send" : "SND",
-        "receive" : "RCV",
+        "recieve" : "RCV",
         "error" :  "ERR"
     }
 

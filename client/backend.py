@@ -15,7 +15,7 @@ class Message:
 
 @dataclass
 class ErrorMessage(Message):
-    pass
+    handled: bool = False
 
 class AppBackend:
     def __init__(self):
@@ -43,10 +43,11 @@ class AppBackend:
     def forgot_password(self, email):
         return False
 
-    def send_message(self, username, message):
+    def send_message(self, message, recipents):
         self.socket.send_with_size(
-            self.socket.build_request(ProtocolConstants.CODES["send"], username, message)
+            self.socket.build_request(ProtocolConstants.CODES["send"], message, *recipents)
         )
+        return True
 
     def update(self):
         while True:
@@ -54,33 +55,34 @@ class AppBackend:
             code, fields = self.socket.deconstruct_response(message)
                 
             with self.lock:
-                if code != ProtocolConstants.CODES["error"]:
-                    self.messages.append(Message(code,fields))
-                else:
+                self.messages.append(Message(code,fields))
+                if code == ProtocolConstants.CODES["error"]:
                     self.errors.append(ErrorMessage(fields[0],fields[1:]))
+                print(self.messages)
+                   
 
-    def get_response(self, code):
+    def get_messages_of_type(self, code):
         code_responses = []
         error_messages = []
 
-        
-        for index, message in enumerate(self.messages):
-            if message.code == code:
-                code_responses.append(message)
+        with self.lock:
+            for index, message in enumerate(self.messages):
+                if message.code == code:
+                    code_responses.append(message)
 
-                self.messages.pop(index)
-                
+                    self.messages.pop(index)
+                    
 
-        for index,error in enumerate(self.errors):
-            if error.fields[0].decode() == code:
-                error_messages.append(error)
 
-                self.errors.pop(index)
+            remove_indices = []
+            for index,error in enumerate(self.errors):
+                if error.code == code:
+                    error_messages.append(error)
+
+                    remove_indices.append(index)
+
+            for i in remove_indices[::-1]:
+                self.errors.pop(i)
 
 
         return code_responses, error_messages
-
-    
-    
-    
-

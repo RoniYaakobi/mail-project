@@ -23,6 +23,7 @@ class ForgotPage(Page):
 
     def forgot_action(self):
         email = self.forgot_email.get()
+        email.delete(0, tk.END) 
         success = self.backend().forgot_password(email)
 
         self.scheduler().schedule(ForgotPasswordCommand(self, email))

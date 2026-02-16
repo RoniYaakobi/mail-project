@@ -1,4 +1,5 @@
 import threading
+import time
 
 from protocol.tcp_server import TcpServer, ClientSocketWrapper
 from protocol.AsyncMessages import AsyncMessages
@@ -31,17 +32,35 @@ class Server:
 
     def deal_with_async_client(self, client):
         listen_thread = threading.Thread(target=self.listen_to_client, args=(client,))
+        update_thread = threading.Thread(target=self.update_client_messages, args=(client,))
         business_logic= threading.Thread(target=self.business_logic, args=(client,))
+        self.clients_to_threads[client] += [listen_thread, update_thread, business_logic]
         listen_thread.start()
+        update_thread.start()
         business_logic.start()
-        self.clients_to_threads[client] += [listen_thread, business_logic]
+        
         
         listen_thread.join()
+        update_thread.join()
         business_logic.join()
 
         del self.clients_to_threads[client]
 
         self.async_messages.delete_socket(client)
+
+    def update_client_messages(self, client):
+        while True:
+            with self.thread_dict_lock:
+                terminate = self.clients_to_threads[client][0]
+                if terminate:
+                    break
+            
+            curr_async_messages = self.async_messages.get_async_messages_to_send(client)
+            for msg in curr_async_messages:
+                client.send_with_size(
+                    client.build_response(ProtocolConstants.CODES["recieve"], *msg)
+                )
+            time.sleep(0.1)
 
 
     def listen_to_client(self, client):
@@ -65,12 +84,6 @@ class Server:
                     self.sock_to_requests[client].append(msg)
                 else:
                     self.sock_to_requests[client] = [msg]
-
-            curr_async_messages = self.async_messages.get_async_messages_to_send(client)
-            if len(curr_async_messages) > 0:
-                client.send_with_size(
-                    client.build_response(ProtocolConstants.CODES["receive"], *curr_async_messages)
-                )
 
     def business_logic(self, client: TcpServer):
         while True:
@@ -113,15 +126,7 @@ class Server:
                         )
 
                 elif code == ProtocolConstants.CODES["send"]:
-                    is_valid = self.send_message(fields)
-                    if is_valid:
-                        client.send_with_size(
-                            client.build_response(code)
-                        )
-                    else:
-                        client.send_with_size(
-                            client.build_response(ProtocolConstants.CODES["error"], code, "WHO?")
-                        )
+                    is_valid = self.send_message(fields, client)
 
             
 
@@ -133,7 +138,8 @@ class Server:
         if not (DataBase.IsUserExist(username) and DataBase.IsPasswordOK(username, password)):
             return False 
         
-        self.async_messages.connect_user(client, fields[0])
+        self.async_messages.connect_user(client, username)
+        client.username = username
         return True
     
 
@@ -150,7 +156,7 @@ class Server:
         return True
 
 
-    def send_message(self, fields):
+    def send_message(self, fields, client):
         message = fields[0]
         
         for user in fields[1:]:
@@ -158,7 +164,7 @@ class Server:
                 return False
             
         for user in fields[1:]:
-            self.async_messages.put_msg_by_user(message, user)
+            self.async_messages.put_msg_by_user((client.username, message), user)
         
         return True
 

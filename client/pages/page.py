@@ -27,15 +27,11 @@ class Page(tk.Frame, ControllerInterface):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        ControllerInterface.__init__(self, controller.backend(), controller.scheduler())
-
-        self.links = dict()
-
-        self.controller = controller  
+        ControllerInterface.__init__(self, controller.backend(), controller.scheduler(), controller= controller)
 
     def show(self):
         self.tkraise()
-        self.controller.current_page = __class__.PAGE_ID
+        self.m_controller.current_page = __class__.PAGE_ID
 
     def set_title(self, text="Title", font=("Arial", 20)):
         tk.Label(self, text=text, font=font).pack(pady=10)
@@ -60,9 +56,9 @@ class Page(tk.Frame, ControllerInterface):
             update_command()
             text.configure(text=getter())
         
-        command = Command(self.controller,execute=update_text)
+        command = Command(self ,execute=update_text, is_finished=lambda: False)
 
-        self.controller.scheduler().schedule(command)
+        self.m_controller.scheduler().schedule(command)
 
         text.pack(fill="x", padx=pack_padx, pady=pack_pady)
 
@@ -70,6 +66,7 @@ class Page(tk.Frame, ControllerInterface):
     def create_field(self, text="field", hidden= False):
         tk.Label(self, text=text).pack()
         field = tk.Entry(self, show="*") if hidden else tk.Entry(self)
+        self.m_fields.append(field)
         return field
     
     def create_action_button(self, text="Action",
@@ -78,15 +75,16 @@ class Page(tk.Frame, ControllerInterface):
         tk.Button(self, text= text, command= command).pack(pady=pack_pady)
 
     def add_link(self, page_type: type , text="Go to a page", pack_pady=0):
-        self.links[page_type] = self
+        self.m_links[page_type] = self
         self.create_action_button(text=text,
-                                   command= lambda: self.links[page_type].show(), pack_pady=pack_pady)
+                                   command= lambda: self.goto(page_type), pack_pady=pack_pady)
+        
 
     def set_link(self, page_type: type, page):
-        self.links[page_type] = page
+        self.m_links[page_type] = page
     
     def get_links(self):
-        return self.links
+        return self.m_links
     
 
     

@@ -6,6 +6,7 @@ import types
 class ClientSocketWrapper:
     def __init__(self, sock):
         self.sock = sock
+        self.username = ""
 
     def recv_by_size(self, *args, **kwargs):
         return TcpServer.recv_by_size(self.sock, *args, **kwargs)

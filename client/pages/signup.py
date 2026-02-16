@@ -1,6 +1,7 @@
 from client.pages.page import Page, PageType
 from tkinter import messagebox
 
+from client.commands.register_command import RegisterCommand
 
 
 class SignUpPage(Page):
@@ -32,8 +33,4 @@ class SignUpPage(Page):
         password = self.signup_password.get()
         confirm = self.confirm_password.get()
 
-
-        if confirm == password:
-            messagebox.showinfo("Sign Up", f"Account created for {username}!")
-        else:
-            messagebox.showerror("Sign Up", f"Password does not match the confirmation password!")
+        self.scheduler().schedule(RegisterCommand(self, username, email, password, confirm))

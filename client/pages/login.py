@@ -1,6 +1,8 @@
 from client.pages.page import Page, PageType
 from tkinter import messagebox
 
+from client.commands.login_command import LoginCommand
+
 
 class LoginPage(Page):
     PAGE_ID = PageType.assign_id("login")
@@ -23,8 +25,7 @@ class LoginPage(Page):
     def login_action(self):
         username = self.login_username.get()
         password = self.login_password.get()
-        if username == "user" and password == "pass":
-            messagebox.showinfo("Login", "Login successful!")
-            self.controller.show_page(PageType.identify("messenger"))
-        else:
-            messagebox.showerror("Login", "Invalid username or password!")
+
+        self.scheduler().schedule(LoginCommand(self, username, password))
+        
+        

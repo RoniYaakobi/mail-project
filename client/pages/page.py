@@ -2,6 +2,9 @@ import tkinter as tk
 from tkinter import messagebox
 from client.commands.basic_commands import Command
 
+from client.pages.controller_interface import ControllerInterface
+
+
 class PageType:
     ids_to_names = dict()
     names_to_ids = dict()
@@ -19,15 +22,16 @@ class PageType:
         return PageType.names_to_ids.get(name)
 
 
-class Page(tk.Frame):
+class Page(tk.Frame, ControllerInterface):
     PAGE_ID = PageType.assign_id("plain")
 
     def __init__(self, parent, controller):
-        super().__init__(parent)
+        tk.Frame.__init__(self, parent)
+        ControllerInterface.__init__(self, controller.backend(), controller.scheduler())
 
         self.links = dict()
 
-        self.controller = controller  # PageManager / App
+        self.controller = controller  
 
     def show(self):
         self.tkraise()
@@ -51,7 +55,6 @@ class Page(tk.Frame):
         tk.Label(self, text=name).pack()
         text = tk.Label(self,**text_box_style)
         text.configure(text=getter())
-        print(getter())
         
         def update_text():
             update_command()
@@ -59,7 +62,7 @@ class Page(tk.Frame):
         
         command = Command(self.controller,execute=update_text)
 
-        self.controller.scheduler.schedule(command)
+        self.controller.scheduler().schedule(command)
 
         text.pack(fill="x", padx=pack_padx, pady=pack_pady)
 
@@ -84,6 +87,7 @@ class Page(tk.Frame):
     
     def get_links(self):
         return self.links
+    
 
     
 

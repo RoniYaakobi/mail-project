@@ -4,25 +4,26 @@ from typing import Callable
 class Command:
     def __init__(self,
                 controller,
-                initialize : Callable[[None], None] = lambda: None,
-                execute : Callable[[None], None] = lambda: None, 
-                is_finished : Callable[[None],bool] = lambda: False, 
-                end : Callable[[bool],None] = lambda inturrepted: None):
+                initialize : Callable[[object], None] = lambda: None,
+                execute : Callable[[object], None] = lambda: None, 
+                is_finished : Callable[[object],bool] = lambda: False, 
+                end : Callable[[object,bool],None] = lambda inturrepted: None):
         
-        self.initialize = initialize
-        self.execute = execute
-        self.is_finished = is_finished
-        self.end = end
+        self.controller = controller
+        self._initialize = initialize
+        self._execute = execute
+        self._is_finished = is_finished
+        self._end = end
         self.active = False
-        self.ID = controller.scheduler.register_command(self)
+        self.ID = controller.scheduler().register_command(self)
     
-    def activate(self):
+    def schedule(self):
         self.active = True
-        self.initialize()
+        self._initialize()
 
-    def deactivate(self, interrupted):
+    def cancel(self, interrupted= True):
         self.active = False
-        self.end(interrupted)
+        self._end(interrupted)
 
 class CommandScheduler:
     def __init__(self, root: tk.Tk, period = 10):
@@ -31,11 +32,12 @@ class CommandScheduler:
         self.commands = []
 
     def schedule(self, command: Command):
-        command.activate()
+        command.schedule()
 
     def register_command(self, command: Command):
         self.commands.append(command)
         return len(self.commands)
+
     
     def periodic(self):
         # iterate only over active commands
@@ -43,10 +45,10 @@ class CommandScheduler:
             if not command.active:
                 continue
 
-            if command.is_finished():
-                command.deactivate(False)
+            if command._is_finished():
+                command.cancel(False)
             else:
-                command.execute()
+                command._execute()
 
 
         self.root.after(self.period, self.periodic)

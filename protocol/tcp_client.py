@@ -5,7 +5,7 @@ import struct
 class TcpClient(socket.socket):
     SIZE_HEADER_FORMAT = "00000000|"  # n digits for data size + one delimiter
     size_header_size = len(SIZE_HEADER_FORMAT)
-    TCP_DEBUG = False
+    TCP_DEBUG = True
     LEN_TO_PRINT = 100
     FIELD_DELIMETER = '`' 
 
@@ -54,10 +54,10 @@ class TcpClient(socket.socket):
 
         
     def build_request(self, code, *args):
-        return code + TcpClient.FIELD_DELIMETER.join(*args)
+        return code + TcpClient.FIELD_DELIMETER.join(args)
     
 
     def deconstruct_response(self, message):
-        code = message[:3]
-        fields = message[3:].split(TcpClient.FIELD_DELIMETER)
+        code = message[:3].decode()
+        fields = message[3:].decode().split(TcpClient.FIELD_DELIMETER)
         return code, fields

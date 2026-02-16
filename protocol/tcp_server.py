@@ -1,11 +1,31 @@
 import socket
 import struct
+import types
+
+
+class ClientSocketWrapper:
+    def __init__(self, sock):
+        self.sock = sock
+
+    def recv_by_size(self, *args, **kwargs):
+        return TcpServer.recv_by_size(self.sock, *args, **kwargs)
+
+    def send_with_size(self, *args, **kwargs):
+        return TcpServer.send_with_size(self.sock, *args, **kwargs)
+
+    def build_response(self, *args, **kwargs):
+        
+        return TcpServer.build_response(self.sock, *args, **kwargs)
+
+    def deconstruct_request(self, *args, **kwargs):
+        return TcpServer.deconstruct_request(self.sock, *args, **kwargs)
+
 
 
 class TcpServer(socket.socket):
     SIZE_HEADER_FORMAT = "00000000|"  # n digits for data size + one delimiter
     size_header_size = len(SIZE_HEADER_FORMAT)
-    TCP_DEBUG = False
+    TCP_DEBUG = True
     LEN_TO_PRINT = 100
     FIELD_DELIMETER = '`' 
 
@@ -54,9 +74,9 @@ class TcpServer(socket.socket):
 
         
     def build_response(self, code, *args):
-        return code + TcpServer.FIELD_DELIMETER.join(*args)
+        return code + TcpServer.FIELD_DELIMETER.join(args)
     
     def deconstruct_request(self, message):
-        code = message[:3]
-        fields = message[3:].split(TcpServer.FIELD_DELIMETER)
+        code = message[:3].decode()
+        fields = message[3:].decode().split(TcpServer.FIELD_DELIMETER)
         return code, fields

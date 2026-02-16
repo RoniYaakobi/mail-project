@@ -1,6 +1,6 @@
 import threading
 
-from protocol.tcp_server import TcpServer
+from protocol.tcp_server import TcpServer, ClientSocketWrapper
 from protocol.AsyncMessages import AsyncMessages
 from protocol.protocol_constants import ProtocolConstants
 from server.server_constants import ServerConstants
@@ -22,10 +22,11 @@ class Server:
 
         while True:
             client,_ = self.server.accept()
+            client = ClientSocketWrapper(client)
             thread = threading.Thread(target=self.deal_with_async_client, args=(client,))
             self.async_messages.add_new_socket(client)
-            thread.start()
             self.clients_to_threads[client] = [False, thread]
+            thread.start()
             
 
     def deal_with_async_client(self, client):
@@ -43,10 +44,11 @@ class Server:
         self.async_messages.delete_socket(client)
 
 
-    def listen_to_client(self, client: TcpServer):
+    def listen_to_client(self, client):
         while True:
+            
             with self.thread_dict_lock:
-                terminate = self.clients_to_threads[0]
+                terminate = self.clients_to_threads[client][0]
                 if terminate:
                     break
 
@@ -64,62 +66,81 @@ class Server:
                 else:
                     self.sock_to_requests[client] = [msg]
 
-            client.send_with_size(ProtocolConstants.CODES["receive"], self.async_messages.get_async_messages_to_send(client))
+            curr_async_messages = self.async_messages.get_async_messages_to_send(client)
+            if len(curr_async_messages) > 0:
+                client.send_with_size(
+                    client.build_response(ProtocolConstants.CODES["receive"], *curr_async_messages)
+                )
 
     def business_logic(self, client: TcpServer):
         while True:
             with self.thread_dict_lock:
-                terminate = self.clients_to_threads[0]
+                terminate = self.clients_to_threads[client][0]
                 if terminate:
                     break
             
             with self.lock:
-                requests = self.sock_to_requests[client]
-                self.sock_to_requests[client] = []
+                try:
+                    requests = self.sock_to_requests[client]
+                    self.sock_to_requests[client] = []
+                except KeyError:
+                    requests = []
+                    self.sock_to_requests[client] = []
 
             for request in requests:
                 code, fields = self.server.deconstruct_request(request)
                 if code == ProtocolConstants.CODES["login"]:
                     is_valid = self.login(fields, client)
                     if is_valid:
-                        client.send_with_size(code)
+                        client.send_with_size(
+                            client.build_response(code)
+                        )
                     else:
-                        client.send_with_size(ProtocolConstants.CODES["error"], code)
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code)
+                        )
 
 
                 elif code == ProtocolConstants.CODES["register"]:
                     is_valid = self.register(fields)
                     if is_valid:
-                        client.send_with_size(code)
+                        client.send_with_size(
+                            client.build_response(code)
+                        )
                     else:
-                        client.send_with_size(ProtocolConstants.CODES["error"], code, "USERNAME TAKEN")
-
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code, "USERNAME TAKEN")
+                        )
 
                 elif code == ProtocolConstants.CODES["send"]:
                     is_valid = self.send_message(fields)
                     if is_valid:
-                        client.send_with_size(code)
+                        client.send_with_size(
+                            client.build_response(code)
+                        )
                     else:
-                        client.send_with_size(ProtocolConstants.CODES["error"], code, "WHO?")
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code, "WHO?")
+                        )
 
             
 
 
     def login(self, fields, client):
-        username = fields[0].decode()
-        password = fields[1].decode()
+        username = fields[0]
+        password = fields[1]
 
         if not (DataBase.IsUserExist(username) and DataBase.IsPasswordOK(username, password)):
             return False 
         
-        self.async_messages.connect_user(client, fields[0].decode())
+        self.async_messages.connect_user(client, fields[0])
         return True
     
 
     def register(self, fields):
-        username = fields[0].decode()
-        password = fields[1].decode()
-        email = fields[2].decode()
+        username = fields[0]
+        password = fields[1]
+        email = fields[2]
 
 
         if DataBase.IsUserExist(username):
@@ -130,7 +151,7 @@ class Server:
 
 
     def send_message(self, fields):
-        message = fields[0].decode()
+        message = fields[0]
         
         for user in fields[1:]:
             if not DataBase.IsUserExist(user):

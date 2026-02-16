@@ -20,24 +20,22 @@ class ErrorMessage(Message):
 class AppBackend:
     def __init__(self):
         super().__init__()
-        self.socket = TcpServer()
+        self.socket = TcpClient()
         self.socket.connect(BackendConstants.SERVER_ADDR)
         self.messages = []
         self.errors = []
-        self.lock = threading.lock()
+        self.lock = threading.Lock()
 
         self.updateThread = threading.Thread(target=self.update, daemon=True)
         self.updateThread.start()
 
     def login(self, username, password):
         self.socket.send_with_size(self.socket.build_request(ProtocolConstants.CODES["login"], username, password))
+        return True
 
-    def regsiter(self, email, username, password, confirmation_password):
-        if password != confirmation_password:
-            return False
-        
+    def register(self, username, email, password, confirmation_password):        
         self.socket.send_with_size(
-            self.socket.build_request(ProtocolConstants.CODES["register"], email, username, password)
+            self.socket.build_request(ProtocolConstants.CODES["register"], username, email, password)
         )
 
         return True
@@ -60,6 +58,28 @@ class AppBackend:
                     self.messages.append(Message(code,fields))
                 else:
                     self.errors.append(ErrorMessage(fields[0],fields[1:]))
+
+    def get_response(self, code):
+        code_responses = []
+        error_messages = []
+
+        
+        for index, message in enumerate(self.messages):
+            if message.code == code:
+                code_responses.append(message)
+
+                self.messages.pop(index)
+                
+
+        for index,error in enumerate(self.errors):
+            if error.fields[0].decode() == code:
+                error_messages.append(error)
+
+                self.errors.pop(index)
+
+
+        return code_responses, error_messages
+
     
     
     

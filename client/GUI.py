@@ -1,19 +1,26 @@
 import tkinter as tk
 from tkinter import messagebox
+
+
+from client.backend import AppBackend
 from client.pages.forgot_password import ForgotPage
 from client.pages.login import LoginPage
 from client.pages.signup import SignUpPage
 from client.pages.send_message import MessengerPage
-from client.commands.basic_commands import CommandScheduler
+from client.commands.basic_commands import CommandScheduler, Command
+from client.GUI_constants import GUIConstants
+
+from client.pages.controller_interface import ControllerInterface
 
 
-class App(tk.Tk):
+class App(tk.Tk, ControllerInterface):
     def __init__(self):
-        super().__init__()
+        tk.Tk.__init__(self)
+        ControllerInterface.__init__(self, AppBackend(), CommandScheduler(self, GUIConstants.SCHEDULER_MS))
 
         self.current_page = None
 
-        self.title("My App")
+        self.title("Messenger")
         self.geometry("400x300")
 
         container = tk.Frame(self)
@@ -21,8 +28,6 @@ class App(tk.Tk):
 
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
-
-        self.scheduler = CommandScheduler(self,10)
 
         self.pages = {}
 
@@ -38,9 +43,11 @@ class App(tk.Tk):
                 page.set_link(page_id, self.pages.get(page_id,page))
 
 
+        self.scheduler().register_command(Command(self, execute=self.backend().update))
+
         self.show_page(LoginPage.PAGE_ID)
 
-        self.scheduler.periodic()
+        self.scheduler().periodic()
 
     def show_page(self, page_class):
         self.pages[page_class].show()

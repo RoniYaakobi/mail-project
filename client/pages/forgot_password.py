@@ -1,5 +1,8 @@
 from client.pages.page import Page, PageType
 from tkinter import messagebox
+from client.backend import AppBackend
+
+from client.commands.forgot_password_command import ForgotPasswordCommand
 
 
 class ForgotPage(Page):
@@ -17,7 +20,15 @@ class ForgotPage(Page):
         
         self.add_link(page_type=PageType.identify("login"), text="Back to Login")
 
+
     def forgot_action(self):
         email = self.forgot_email.get()
-        messagebox.showinfo("Forgot Password", f"Password reset link sent to {email}!")
+        success = self.backend().forgot_password(email)
 
+        self.scheduler().schedule(ForgotPasswordCommand(self, email))
+
+            
+
+
+
+    

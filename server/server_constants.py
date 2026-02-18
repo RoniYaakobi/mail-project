@@ -4,3 +4,5 @@ class ServerConstants:
     IP = "0.0.0.0"
     PORT = 67
     ADDR = (IP,PORT)
+
+    PEPPER = "PELEG"

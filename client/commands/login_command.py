@@ -20,8 +20,12 @@ class LoginCommand(Command):
 
     def initialize(self):
         self.connected = self.controller.backend().login(self.username, self.password)
+        self.controller.global_state()["username"] = self.username
+        self.controller.global_state()["password"] = self.password
+        self.controller.global_state()["is_valid"] = False
         if not self.connected:
             self.cancel()
+            return
 
     def is_finished(self):
         messages, errors = self.controller.backend().get_messages_of_type(ProtocolConstants.CODES["login"])
@@ -29,6 +33,7 @@ class LoginCommand(Command):
         if len(errors) > 0:
             self.has_errors = True
             self.cancel()
+            return False
 
         return len(messages) > 0
 
@@ -36,6 +41,7 @@ class LoginCommand(Command):
     def end(self, interrupted):
         if not interrupted:
             messagebox.showinfo("Login", f"Connected to username: {self.username}")
+            self.controller.global_state()["is_valid"] = True
             self.controller.goto(MessengerPage.PAGE_ID)
         elif self.has_errors:
             messagebox.showerror("Login", f"Incorrect username or password!")

@@ -17,6 +17,7 @@ class SendMessageCommand(Command):
         self.connected = self.controller.backend().send_message(self.message, self.recipents)
         if not self.connected:
             self.cancel()
+            return
 
     def end(self, interrupted):
         if interrupted:

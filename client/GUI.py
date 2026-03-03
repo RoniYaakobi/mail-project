@@ -7,6 +7,7 @@ from client.pages.forgot_password import ForgotPage
 from client.pages.login import LoginPage
 from client.pages.signup import SignUpPage
 from client.pages.send_message import MessengerPage
+from client.pages.verify_account import VerifyPage
 from client.commands.basic_commands import CommandScheduler, Command
 from client.GUI_constants import GUIConstants
 
@@ -29,7 +30,7 @@ class App(tk.Tk, ControllerInterface):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        for PageClass in (LoginPage, SignUpPage, ForgotPage, MessengerPage):
+        for PageClass in (LoginPage, SignUpPage, ForgotPage, MessengerPage, VerifyPage):
             page = PageClass(container, self)
             self.m_links[PageClass.PAGE_ID] = page
 

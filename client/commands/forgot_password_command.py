@@ -21,6 +21,7 @@ class ForgotPasswordCommand(Command):
         self.connected = self.controller.backend().forgot_password(self.email)
         if not self.connected:
             self.cancel()
+            return
 
     def is_finished(self):
         messages, errors = self.controller.backend().get_messages_of_type(ProtocolConstants.CODES["forgot"])
@@ -28,6 +29,7 @@ class ForgotPasswordCommand(Command):
         if len(errors) > 0:
             self.has_errors = True
             self.cancel()
+            return False
 
         return len(messages) > 0
 

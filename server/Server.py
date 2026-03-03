@@ -6,6 +6,7 @@ from protocol.AsyncMessages import AsyncMessages
 from protocol.protocol_constants import ProtocolConstants
 from server.server_constants import ServerConstants
 from server.database import DataBase
+from server.send_email import send_email
 
 class Server:
     def __init__(self):
@@ -103,30 +104,70 @@ class Server:
             for request in requests:
                 code, fields = self.server.deconstruct_request(request)
                 if code == ProtocolConstants.CODES["login"]:
-                    is_valid = self.login(fields, client)
-                    if is_valid:
+                    username_taken = self.login(fields, client)
+                    if username_taken:
                         client.send_with_size(
                             client.build_response(code)
                         )
                     else:
                         client.send_with_size(
-                            client.build_response(ProtocolConstants.CODES["error"], code)
+                            client.build_response(ProtocolConstants.CODES["error"], code, 
+                                                  str(ProtocolConstants.ERRORS.index("username or password")))
                         )
 
 
                 elif code == ProtocolConstants.CODES["register"]:
-                    is_valid = self.register(fields)
-                    if is_valid:
+                    username_taken, email_taken = self.register(fields)
+                    if not username_taken and not email_taken:
                         client.send_with_size(
                             client.build_response(code)
                         )
-                    else:
+                    elif username_taken:
                         client.send_with_size(
-                            client.build_response(ProtocolConstants.CODES["error"], code, "USERNAME TAKEN")
+                            client.build_response(ProtocolConstants.CODES["error"], code, 
+                                                  str(ProtocolConstants.ERRORS.index("username taken")))
+                        )
+                    elif email_taken:
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code, 
+                                                  str(ProtocolConstants.ERRORS.index("email taken")))
+                        )
+                elif code == ProtocolConstants.CODES["verify"]:
+                    correct_password, correct_code = self.verify(fields)
+                    if correct_password and correct_code:
+                        client.send_with_size(
+                            client.build_response(code)
+                        )
+                    elif not correct_code:
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code, 
+                                                  str(ProtocolConstants.ERRORS.index("wrong code")))
+                        )
+                    elif not correct_password:
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code, 
+                                                  str(ProtocolConstants.ERRORS.index("username or password")))
+                        )
+
+                elif code == ProtocolConstants.CODES["resend"]:
+                    correct_password, user_not_valid = self.resend_code(fields)
+                    if correct_password and user_not_valid:
+                        client.send_with_size(
+                            client.build_response(code)
+                        )
+                    elif not user_not_valid:
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code, 
+                                                  str(ProtocolConstants.ERRORS.index("user already valid")))
+                        )
+                    elif not correct_password :
+                        client.send_with_size(
+                            client.build_response(ProtocolConstants.CODES["error"], code, 
+                                                  str(ProtocolConstants.ERRORS.index("username or password")))
                         )
 
                 elif code == ProtocolConstants.CODES["send"]:
-                    is_valid = self.send_message(fields, client)
+                    username_taken = self.send_message(fields, client)
 
             
 
@@ -135,7 +176,8 @@ class Server:
         username = fields[0]
         password = fields[1]
 
-        if not (DataBase.IsUserExist(username) and DataBase.IsPasswordOK(username, password)):
+        if not (DataBase.IsUserExist(username) and
+                 DataBase.IsPasswordOK(username, password) and DataBase.IsVerified(username)):
             return False 
         
         self.async_messages.connect_user(client, username)
@@ -148,12 +190,42 @@ class Server:
         password = fields[1]
         email = fields[2]
 
-
-        if DataBase.IsUserExist(username):
-            return False
+        if DataBase.IsUserExist(username) or DataBase.IsEmailUsed(email):
+            return DataBase.IsUserExist(username), DataBase.IsEmailUsed(email)
         
-        DataBase.SaveUser(username, password, email)
-        return True
+        code = DataBase.SaveUser(username, email, password)
+
+        send_email(email, "Verification code", code)
+
+        return False, False
+
+    def verify(self, fields):
+        username = fields[0]
+        password = fields[1]
+        code = fields[2]
+
+        if (DataBase.IsPasswordOK(username,password)):
+            return True, DataBase.ValidateAccount(username, code)
+        
+        return False, True
+    
+    def resend_code(self, fields):
+        username = fields[0]
+        password = fields[1]
+
+        if not DataBase.IsPasswordOK(username,password):
+            return False, True
+
+        if (DataBase.IsVerified(username)):
+            return True, False
+        
+        email = DataBase.GetUserEmail(username)
+        code = DataBase.ResetCode(username)
+
+        if code != -1:
+            send_email(email,"Verification code", str(code))
+        
+        return True, True
 
 
     def send_message(self, fields, client):

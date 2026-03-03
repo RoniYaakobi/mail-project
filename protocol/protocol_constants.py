@@ -1,18 +1,21 @@
 class ProtocolConstants:
     CODES = {
         "login" : "LGN",
+        "confirm register": "CRG",
         "register" : "RGS",
         "forgot" : "FRG",
         "send" : "SND",
         "recieve" : "RCV",
-        "error" :  "ERR"
+        "error" :  "ERR",
+        "verify" : "VRF",
+        "resend": "RSD"
     }
 
-    ERRORS = {
-        "general" : 0,
-        "register" : 1,
-        "login" : 2,
-        "email" : 3,
-        "send" : 4,
-        "recv" : 5
-    }
+    ERRORS = [
+        "username or password",
+        "username taken",
+        "email taken",
+        "wrong code",
+        "code expired",
+        "user already valid"
+    ]

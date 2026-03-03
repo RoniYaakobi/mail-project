@@ -33,15 +33,29 @@ class AppBackend:
         self.socket.send_with_size(self.socket.build_request(ProtocolConstants.CODES["login"], username, password))
         return True
 
-    def register(self, username, email, password, confirmation_password):        
+    def register(self, username, email, password):        
         self.socket.send_with_size(
-            self.socket.build_request(ProtocolConstants.CODES["register"], username, email, password)
+            self.socket.build_request(ProtocolConstants.CODES["register"], username, password , email)
         )
 
         return True
     
     def forgot_password(self, email):
         return False
+    
+    def verify_account(self, username, password, code):
+        self.socket.send_with_size(
+            self.socket.build_request(ProtocolConstants.CODES["verify"], username, password, code)
+        )
+
+        return True
+    
+    def reset_code(self, username, password):
+        self.socket.send_with_size(
+            self.socket.build_request(ProtocolConstants.CODES["resend"], username, password)
+        )
+
+        return True
 
     def send_message(self, message, recipents):
         self.socket.send_with_size(

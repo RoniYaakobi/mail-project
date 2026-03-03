@@ -55,5 +55,4 @@ class MessengerPage(Page):
         self.messages += new_messages
 
     def get_messages(self):
-        print("get")
         return "\n".join(self.messages)

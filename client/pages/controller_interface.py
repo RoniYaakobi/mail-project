@@ -14,16 +14,12 @@ class ControllerInterface:
         self.m_links = dict()
         self.m_controller = controller
         self.m_fields = []
-        self.m_global_state = {}
 
     def backend(self) -> AppBackend:
         return self.m_backend
     
     def scheduler(self) -> CommandScheduler:
         return self.m_scheduler
-    
-    def global_state(self):
-        return self.m_controller.global_state() if self.m_controller else self.m_global_state
     
     def get_page(self, page_type):
         if not isinstance(page_type, int):

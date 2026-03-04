@@ -8,10 +8,8 @@ from client.pages.login import LoginPage
 
 
 class ResendCommand(Command):
-    def __init__(self, controller, username, password, *args, **kwargs):
+    def __init__(self, controller, *args, **kwargs):
         super().__init__(controller, *args, **kwargs)
-        self.username = username
-        self.password = password
         self.already_valid = False
         self.wrong_username = False
         self._initialize = self.initialize
@@ -19,7 +17,7 @@ class ResendCommand(Command):
         self._end = self.end
 
     def initialize(self):
-        self.connected = self.controller.backend().reset_code(self.username, self.password)
+        self.connected = self.controller.backend().reset_code()
         if not self.connected:
             self.cancel()
             return
@@ -40,7 +38,7 @@ class ResendCommand(Command):
 
     def end(self, interrupted):
         if not interrupted:
-            messagebox.showinfo("Resend", f"Resending code for {self.username}!")
+            messagebox.showinfo("Resend", f"Resending code for {self.controller.backend().get_username()}!")
         elif self.already_valid:
             messagebox.showerror("Resend", f"User already valid!")
         elif self.wrong_username:

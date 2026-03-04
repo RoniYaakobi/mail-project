@@ -1,5 +1,4 @@
 from client.pages.page import Page, PageType
-from tkinter import messagebox
 
 from client.commands.login_command import LoginCommand
 

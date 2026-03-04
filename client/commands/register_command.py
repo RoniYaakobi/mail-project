@@ -29,7 +29,11 @@ class RegisterCommand(Command):
             self.cancel()
             return
 
-        self.connected = self.controller.backend().register(self.username, self.email, self.password)
+        self.controller.backend().set_username(self.username)
+        self.controller.backend().set_email(self.email)
+        self.controller.backend().set_password(self.password)
+
+        self.connected = self.controller.backend().register()
         if not self.connected:
             self.cancel()
             return
@@ -51,11 +55,7 @@ class RegisterCommand(Command):
     def end(self, interrupted):
         if not interrupted:
             messagebox.showinfo("Register", f"Sent code to {self.email}, enter it to finish registration")
-            self.controller.global_state()["username"] = self.username
-            self.controller.global_state()["password"] = self.password
-            self.controller.global_state()["is_valid"] = False
-
-            print(self.controller.global_state())
+            
             self.controller.goto(VerifyPage.PAGE_ID)
         elif self.username_taken:
             messagebox.showerror("Register", f"Username {self.username} was taken")

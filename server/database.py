@@ -31,13 +31,16 @@ class DataBase:
         
         return wrapper
     
-    def read_op(func):
+    @staticmethod
+    def hash_password(password, salt=None):
+        if not salt: 
+            salt = os.urandom(16)
 
-        def wrapper(*args, **kwargs):
-            DataBase.load()
-            return func(*args,**kwargs)
-        
-        return wrapper
+        combined = password.encode("utf-8") + salt + ServerConstants.PEPPER.encode()
+
+        hash_hex = hmac.new(ServerConstants.PEPPER.encode(), combined, "md5").hexdigest()
+
+        return salt, hash_hex
 
     @staticmethod
     def load():
@@ -53,7 +56,25 @@ class DataBase:
             pickle.dump(DataBase.USER_DATA, data)
 
     @staticmethod
-    @read_op
+    def IsPasswordOK(username, password):
+        salt = DataBase.USER_DATA[username].salt
+
+        hashed_password = DataBase.USER_DATA[username].hashed_password
+
+        return hashed_password == DataBase.hash_password(password,salt)[1]
+    
+    @staticmethod
+    def IsUserExist(username):
+        return username in DataBase.USER_DATA.keys()
+
+    @staticmethod
+    def GetByEmail(email):
+        for user in DataBase.USER_DATA.values():
+            if user.email == email:
+                return user
+        return None
+
+    @staticmethod
     def GetUserEmail(username):
         if user := DataBase.USER_DATA.get(username, None):
             return user.email
@@ -61,11 +82,21 @@ class DataBase:
         return "-1"
     
     @staticmethod
-    @read_op
     def IsEmailUsed(email):
-        for user in DataBase.USER_DATA.values():
-            if user.email == email:
-                return user.is_verified or user.expiration_date < datetime.datetime.now()
+        user = DataBase.GetByEmail(email)
+        return not user is None
+    
+    @staticmethod
+    @write_op
+    def VerifyCodeForgot(email, code, reset=False):
+        user = DataBase.GetByEmail(email)
+        if user:
+            if DataBase.IsValidCode(user, code):
+                if reset:
+                    user.expiration_date = datetime.datetime.now() - datetime.timedelta(seconds = 1)
+                else:
+                     user.expiration_date += datetime.timedelta(days=5) 
+                return True
         return False
     
     @staticmethod
@@ -74,19 +105,16 @@ class DataBase:
         user = DataBase.USER_DATA.get(username, None)
         if DataBase.IsValidCode(user, code):
             user.is_verified = True
+
         return user.is_verified
     
     @staticmethod
-    @read_op
+    
     def IsValidCode(user, code):
-        print(user)
-        print(user.expiration_date > datetime.datetime.now())
-        print(user.expiration_date, datetime.datetime.now())
         return user and user.code == int(code) and user.expiration_date > datetime.datetime.now()
     
     
     @staticmethod
-    @read_op
     def IsVerified(username):
         user = DataBase.USER_DATA.get(username, None)
         return user and user.is_verified
@@ -99,7 +127,6 @@ class DataBase:
         code = rnd.randint(1,1000)
         DataBase.USER_DATA[username] = User(username, hashed_password, email, salt,
                                             code , datetime.datetime.now() + datetime.timedelta(minutes=5), False)
-
         return str(code)
     
     @staticmethod
@@ -113,33 +140,29 @@ class DataBase:
             return code
         
         return -1
-
+    
+    @staticmethod
+    @write_op
+    def ResetPassword(email, password):
+        user = DataBase.GetByEmail(email)
+        if not user:
+            return False
         
+        salt, hashed_password = DataBase.hash_password(password)
+        user.salt = salt
+        user.hashed_password = hashed_password
+
+        return True
+    
     @staticmethod
-    def hash_password(password, salt=None):
-        if not salt: 
-            salt = os.urandom(16)
+    @write_op
+    def ResetCodeByEmail(email):
+        user = DataBase.GetByEmail(email)
+        if user:
+            code = rnd.randint(1,1000)
+            user.code = code
+            user.expiration_date = datetime.datetime.now() + datetime.timedelta(minutes=5)
+            return code
+        
+        return -1
 
-        print("salt: ", salt)
-
-        combined = password.encode("utf-8") + salt + ServerConstants.PEPPER.encode()
-
-        print("combined: ", combined)
-
-        hash_hex = hmac.new(ServerConstants.PEPPER.encode(), combined, "md5").hexdigest()
-
-        return salt, hash_hex
-
-    @staticmethod
-    @read_op
-    def IsPasswordOK(username, password):
-        salt = DataBase.USER_DATA[username].salt
-
-        hashed_password = DataBase.USER_DATA[username].hashed_password
-
-        return hashed_password == DataBase.hash_password(password,salt)[1]
-
-    @staticmethod
-    @read_op
-    def IsUserExist(username):
-        return username in DataBase.USER_DATA.keys()

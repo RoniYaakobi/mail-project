@@ -3,7 +3,6 @@ import threading
 
 from dataclasses import dataclass
 
-from protocol.AsyncMessages import AsyncMessages
 from protocol.tcp_client import TcpClient
 from protocol.protocol_constants import ProtocolConstants
 from client.backend_constants import BackendConstants
@@ -29,31 +28,89 @@ class AppBackend:
         self.updateThread = threading.Thread(target=self.update, daemon=True)
         self.updateThread.start()
 
-    def login(self, username, password):
-        self.socket.send_with_size(self.socket.build_request(ProtocolConstants.CODES["login"], username, password))
+        self.username = None
+        self.email = None
+        self.password = None
+        self.code = None
+
+    def set_password(self, password):
+        self.password = password
+    
+    def reset_password(self):
+        self.password = None
+
+    def set_username(self, username):
+        self.username = username
+    
+    def reset_username(self):
+        self.username = None
+
+    def get_username(self):
+        return self.username
+
+    def set_email(self, email):
+        self.email = email
+    
+    def reset_email(self):
+        self.email = None
+
+    def get_email(self):
+        return self.email
+
+    def set_code(self, code):
+        self.code = code
+    
+    def reset_code(self):
+        self.code = None
+
+    def login(self):
+        self.socket.send_with_size(self.socket.build_request(ProtocolConstants.CODES["login"], self.username, self.password))
         return True
 
-    def register(self, username, email, password):        
+    def register(self):
         self.socket.send_with_size(
-            self.socket.build_request(ProtocolConstants.CODES["register"], username, password , email)
+            self.socket.build_request(ProtocolConstants.CODES["register"], self.username, self.password , self.email)
         )
 
         return True
     
-    def forgot_password(self, email):
-        return False
-    
-    def verify_account(self, username, password, code):
+    def forgot_password(self):
         self.socket.send_with_size(
-            self.socket.build_request(ProtocolConstants.CODES["verify"], username, password, code)
+            self.socket.build_request(ProtocolConstants.CODES["forgot"], self.email)
         )
 
         return True
     
-    def reset_code(self, username, password):
+    def reset_password(self):
         self.socket.send_with_size(
-            self.socket.build_request(ProtocolConstants.CODES["resend"], username, password)
+            self.socket.build_request(ProtocolConstants.CODES["reset"], self.email, self.code, self.password)
         )
+
+        return True
+    
+    def verify_account(self):
+        self.socket.send_with_size(
+            self.socket.build_request(ProtocolConstants.CODES["verify"], self.username, self.password, self.code)
+        )
+
+        return True
+    
+    def verify_for_reset(self):
+        self.socket.send_with_size(
+            self.socket.build_request(ProtocolConstants.CODES["verforgot"], self.email, self.code)
+        )
+
+        return True
+    
+    def reset_code(self, email=False):
+        if email:
+            self.socket.send_with_size(
+                self.socket.build_request(ProtocolConstants.CODES["resendmail"], self.email)
+            )
+        else:
+            self.socket.send_with_size(
+                self.socket.build_request(ProtocolConstants.CODES["resend"], self.username)
+            )
 
         return True
 
@@ -72,7 +129,6 @@ class AppBackend:
                 self.messages.append(Message(code,fields))
                 if code == ProtocolConstants.CODES["error"]:
                     self.errors.append(ErrorMessage(fields[0],fields[1:]))
-                print(self.messages)
                    
 
     def get_messages_of_type(self, code):

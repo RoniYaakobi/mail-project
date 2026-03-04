@@ -8,11 +8,15 @@ class ProtocolConstants:
         "recieve" : "RCV",
         "error" :  "ERR",
         "verify" : "VRF",
-        "resend": "RSD"
+        "resend": "RSD",
+        "reset": "RST",
+        "verforgot": "VFR",
+        "resendmail": "RSE"
     }
 
     ERRORS = [
         "username or password",
+        "wrong email",
         "username taken",
         "email taken",
         "wrong code",

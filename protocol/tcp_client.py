@@ -1,57 +1,18 @@
-import socket
-import struct
+import struct, os
+from protocol.protocol_constants import ProtocolConstants
+from cryptography.hazmat.primitives.asymmetric import rsa, padding
+from cryptography.hazmat.primitives import serialization, hashes
+from protocol.tcp_socket import TcpSocket
+from client.backend_constants import BackendConstants
 
 
-class TcpClient(socket.socket):
-    SIZE_HEADER_FORMAT = "00000000|"  # n digits for data size + one delimiter
-    size_header_size = len(SIZE_HEADER_FORMAT)
-    TCP_DEBUG = True
-    LEN_TO_PRINT = 100
-    FIELD_DELIMETER = '`' 
-
+class TcpClient(TcpSocket):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.aes_key = TcpClient.generate_aes_key()
 
-
-    def recv_by_size(self):
-        size_header = b''
-        data_len = 0
-        while len(size_header) < TcpClient.size_header_size:
-            _s = self.recv(TcpClient.size_header_size - len(size_header))
-            if _s is None:
-                size_header = b''
-                break
-            size_header += _s
-        # Now, the size header field has entirely received in size_header (which is binary).
-        data = b''
-        if size_header != b"":
-            data_len = int(size_header[:TcpClient.size_header_size - 1])
-            while len(data) < data_len:
-                _d = self.recv(data_len - len(data))
-                if _d is None:
-                    data = b""
-                    break
-                data += _d
-
-        if TcpClient.TCP_DEBUG and size_header is not None:
-            print(f"\nRecv({int(size_header[:-1])})>>>{data[:TcpClient.LEN_TO_PRINT]}")
-        if data_len != len(data):
-            data = b""  # Partial data is like no data !
-        return data
-
-
-    def send_with_size(self, bdata):
-        len_data = len(bdata)
-        header_data = str(len(bdata)).zfill(TcpClient.size_header_size - 1).encode() + b"|"
-        if type(bdata) != bytes:
-            bdata = bdata.encode()
-        bytea = header_data + bdata
-
-        self.send(bytea)
-        
-        if TcpClient.TCP_DEBUG and len_data > 0:
-            print(f"\nSent({len_data})>>>{bytea[:TcpClient.LEN_TO_PRINT]}")
-
+    def set_addr(self, addr):
+        self.addr = addr
         
     def build_request(self, code, *args):
         print(args)
@@ -62,3 +23,54 @@ class TcpClient(socket.socket):
         code = message[:3].decode()
         fields = message[3:].decode().split(TcpClient.FIELD_DELIMETER)
         return code, fields
+    
+    def validate_server_support(self, encryption_type):
+        self.send(struct.pack("!B", encryption_type.value))
+        return struct.unpack("!B", self.recv(1))[0] == 1
+    
+    def connect_rsa(self):
+        self.connect(self.addr)
+        server_supports_method = self.validate_server_support(ProtocolConstants.EncryptionType.RSA)
+        if not server_supports_method:
+            self.connected = False
+            return False
+        
+        self.raw_send_with_size(ProtocolConstants.ACK)
+        public_key_bytes = self.raw_recv_by_size()
+        self.server_public_key = serialization.load_pem_public_key(public_key_bytes)
+
+        self.send_aes_with_rsa()
+        self.response = self.recv_by_size()
+
+        if self.response.decode() == ProtocolConstants.ACK:
+            self.connected = True
+            return True
+        else:
+            print("Error: Server failed to respond with AES ack")
+            self.connected = False
+            return False
+
+    def send_aes_with_rsa(self):
+        aes_key = self.server_public_key.encrypt(
+            self.aes_key,
+            padding.OAEP(
+                mgf=padding.MGF1(hashes.SHA256()),  
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+
+        self.raw_send_with_size(aes_key)
+
+    def connect_dh(self):
+        pass
+
+    @staticmethod
+    def generate_aes_key():
+        return os.urandom(32)
+    
+if __name__ == "__main__":
+    client = TcpClient()
+    client.set_addr(BackendConstants.SERVER_ADDR)
+    print(client.connect_rsa())
+    client.send_with_size("YAY")

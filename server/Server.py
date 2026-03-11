@@ -1,7 +1,7 @@
 import threading
-import time
+import time, socket
 
-from protocol.tcp_server import TcpServer, ClientSocketWrapper
+from protocol.tcp_server import TcpConnection, ClientSocketWrapper
 from protocol.AsyncMessages import AsyncMessages
 from protocol.protocol_constants import ProtocolConstants
 from server.server_constants import ServerConstants
@@ -10,7 +10,7 @@ from server.send_email import send_email
 
 class Server:
     def __init__(self):
-        self.server = TcpServer()
+        self.server = socket.socket()
         self.server.bind(ServerConstants.ADDR)
         self.server.listen(5)
         self.async_messages = AsyncMessages()
@@ -86,7 +86,7 @@ class Server:
                 else:
                     self.sock_to_requests[client] = [msg]
 
-    def business_logic(self, client: TcpServer):
+    def business_logic(self, client: TcpConnection):
         while True:
             with self.thread_dict_lock:
                 terminate = self.clients_to_threads[client][0]

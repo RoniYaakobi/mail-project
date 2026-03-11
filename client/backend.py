@@ -20,7 +20,7 @@ class AppBackend:
     def __init__(self):
         super().__init__()
         self.socket = TcpClient()
-        self.socket.connect(BackendConstants.SERVER_ADDR)
+        self.socket.set_addr(BackendConstants.SERVER_ADDR)
         self.messages = []
         self.errors = []
         self.lock = threading.Lock()
@@ -28,10 +28,15 @@ class AppBackend:
         self.updateThread = threading.Thread(target=self.update, daemon=True)
         self.updateThread.start()
 
+        self.cipher_mode = None
+
         self.username = None
         self.email = None
         self.password = None
         self.code = None
+
+    def set_cipher_mode(self, cipher_mode):
+        self.cipher_mode = cipher_mode
 
     def set_password(self, password):
         self.password = password
@@ -62,6 +67,12 @@ class AppBackend:
     
     def reset_code(self):
         self.code = None
+
+    def connect(self):
+        if self.cipher_mode == ProtocolConstants.EncryptionType.RSA:
+            return self.socket.connect_rsa() 
+        else:
+            return self.socket.connect_dh()
 
     def login(self):
         self.socket.send_with_size(self.socket.build_request(ProtocolConstants.CODES["login"], self.username, self.password))

@@ -1,3 +1,5 @@
+from enum import Enum
+
 class ProtocolConstants:
     CODES = {
         "login" : "LGN",
@@ -23,3 +25,9 @@ class ProtocolConstants:
         "code expired",
         "user already valid"
     ]
+
+    ACK = "ACK"
+
+    class EncryptionType(Enum):
+        RSA = 1
+        DH = 2

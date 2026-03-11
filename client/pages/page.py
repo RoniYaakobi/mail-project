@@ -36,6 +36,13 @@ class Page(tk.Frame, ControllerInterface):
     def set_title(self, text="Title", font=("Arial", 20)):
         tk.Label(self, text=text, font=font).pack(pady=10)
 
+    def add_radio_choice(self, text="Option", value=0, variable=None):
+        if variable is None:
+            variable = tk.IntVar(value=value)
+        tk.Radiobutton(self, text=text, value=value, variable=variable).pack()
+
+        return variable
+
     def create_text_box(self, name, update_command, getter, pack_padx=0, pack_pady=0):
         text_box_style = {
             "bg":"white",

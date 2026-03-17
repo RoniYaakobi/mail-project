@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 import smtplib
 import ssl
 import uuid

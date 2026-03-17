@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 from enum import Enum
 
 class ProtocolConstants:

@@ -1,9 +1,12 @@
+__author__ = "RONI YAAKOBI"
 import struct, os
 from protocol.protocol_constants import ProtocolConstants
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from protocol.tcp_socket import TcpSocket
 from client.backend_constants import BackendConstants
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+
 
 
 class TcpClient(TcpSocket):
@@ -37,21 +40,16 @@ class TcpClient(TcpSocket):
         
         self.raw_send_with_size(ProtocolConstants.ACK)
         public_key_bytes = self.raw_recv_by_size()
-        self.server_public_key = serialization.load_pem_public_key(public_key_bytes)
+        self.server_public_key_rsa = serialization.load_pem_public_key(public_key_bytes)
 
         self.send_aes_with_rsa()
-        self.response = self.recv_by_size()
 
-        if self.response.decode() == ProtocolConstants.ACK:
-            self.connected = True
-            return True
-        else:
-            print("Error: Server failed to respond with AES ack")
-            self.connected = False
-            return False
+        return self.verify_connection()
+
+
 
     def send_aes_with_rsa(self):
-        aes_key = self.server_public_key.encrypt(
+        aes_key = self.server_public_key_rsa.encrypt(
             self.aes_key,
             padding.OAEP(
                 mgf=padding.MGF1(hashes.SHA256()),  
@@ -63,7 +61,52 @@ class TcpClient(TcpSocket):
         self.raw_send_with_size(aes_key)
 
     def connect_dh(self):
-        pass
+        self.connect(self.addr)
+        server_supports_method = self.validate_server_support(ProtocolConstants.EncryptionType.DH)
+        if not server_supports_method:
+            self.connected = False
+            return False
+        
+        self.raw_send_with_size(ProtocolConstants.ACK)
+        
+        params_bytes = self.raw_recv_by_size()
+        dh_params = serialization.load_pem_parameters(params_bytes)
+
+        client_private_key_dh = dh_params.generate_private_key()
+        client_public_key = client_private_key_dh.public_key()
+
+        client_public_bytes = client_public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        self.raw_send_with_size(client_public_bytes)
+
+
+        public_key_bytes = self.raw_recv_by_size()
+        server_public_key_dh = serialization.load_pem_public_key(public_key_bytes)
+        shared_secret = client_private_key_dh.exchange(server_public_key_dh)
+
+        self.aes_key = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=ProtocolConstants.ACK.encode(),
+        ).derive(shared_secret)
+
+        self.send_with_size(ProtocolConstants.ACK)
+
+        return self.verify_connection()
+
+    def verify_connection(self):
+        response = self.recv_by_size()
+        if response.decode() == ProtocolConstants.ACK:
+            self.connected = True
+            return True
+        else:
+            print("Error: Server failed to respond with AES ack")
+            self.connected = False
+            return False
 
     @staticmethod
     def generate_aes_key():
@@ -72,5 +115,6 @@ class TcpClient(TcpSocket):
 if __name__ == "__main__":
     client = TcpClient()
     client.set_addr(BackendConstants.SERVER_ADDR)
-    print(client.connect_rsa())
+    print(client.connect_dh())
+    print("test")
     client.send_with_size("YAY")

@@ -1,5 +1,9 @@
-import threading
+__author__ = "RONI YAAKOBI"
+import threading, os
 import time, socket
+
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa, dh
 
 from protocol.tcp_server import TcpConnection, ClientSocketWrapper
 from protocol.AsyncMessages import AsyncMessages
@@ -10,6 +14,18 @@ from server.send_email import send_email
 
 class Server:
     def __init__(self):
+        if not os.path.exists(ServerConstants.PRIVATE_PATH) or not os.path.exists(ServerConstants.PUBLIC_PATH):
+            Server.generate_keys()
+
+        self.RSA_PRIVATE_KEY = Server.load_private_key()
+        self.RSA_PUBLIC_KEY = Server.load_public_key()
+
+
+        if not os.path.exists(ServerConstants.DH_PATH):
+            Server.generate_params_dh()
+
+        self.DH_PARAMS = Server.load_parmeters_dh()
+
         self.server = socket.socket()
         self.server.bind(ServerConstants.ADDR)
         self.server.listen(5)
@@ -25,13 +41,21 @@ class Server:
         while True:
             client,_ = self.server.accept()
             client = ClientSocketWrapper(client)
-            thread = threading.Thread(target=self.deal_with_async_client, args=(client,))
+            thread = threading.Thread(target=self.deal_with_async_client, args=(client,), daemon=True)
             self.async_messages.add_new_socket(client)
             self.clients_to_threads[client] = [False, thread]
             thread.start()
             
 
     def deal_with_async_client(self, client):
+        is_connected = client.accept_secure(rsa_private_key=self.RSA_PRIVATE_KEY,
+                                             rsa_public_key=self.RSA_PUBLIC_KEY,
+                                             dh_parameters=self.DH_PARAMS)
+        if not is_connected:
+            del self.clients_to_threads[client]
+
+            self.async_messages.delete_socket(client)
+        
         listen_thread = threading.Thread(target=self.listen_to_client, args=(client,))
         update_thread = threading.Thread(target=self.update_client_messages, args=(client,))
         business_logic= threading.Thread(target=self.business_logic, args=(client,))
@@ -102,7 +126,7 @@ class Server:
                     self.sock_to_requests[client] = []
 
             for request in requests:
-                code, fields = self.server.deconstruct_request(request)
+                code, fields = client.deconstruct_request(request)
                 if code == ProtocolConstants.CODES["login"]:
                     username_taken = self.login(fields, client)
                     if username_taken:
@@ -344,6 +368,57 @@ class Server:
             self.async_messages.put_msg_by_user((client.username, message), user)
         
         return True
+    
+    @staticmethod
+    def generate_keys():
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        public_key = private_key.public_key()
+
+        # Save private key (PKCS8 + PEM)
+        with open(ServerConstants.PRIVATE_PATH, "wb") as f:
+            f.write(private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            ))
+
+        # Save public key (SPKI + PEM)
+        with open(ServerConstants.PUBLIC_PATH, "wb") as f:
+            f.write(public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            ))
+
+        print(f"RSA keys generated!")
+
+    @staticmethod
+    def load_private_key():
+        with open(ServerConstants.PRIVATE_PATH, "rb") as f:
+            return serialization.load_pem_private_key(f.read(), password=None)
+
+    @staticmethod
+    def load_public_key():
+        with open(ServerConstants.PUBLIC_PATH, "rb") as f:
+            return serialization.load_pem_public_key(f.read())
+
+    @staticmethod
+    def generate_params_dh():
+        dh_params = dh.generate_parameters(generator=2, key_size=2048)
+
+
+        # Save public key (SPKI + PEM)
+        with open(ServerConstants.DH_PATH, "wb") as f:
+            f.write(dh_params.parameter_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.ParameterFormat.PKCS3
+            ))
+
+        print(f"DH params generated!")
+
+    @staticmethod
+    def load_parmeters_dh():
+        with open(ServerConstants.DH_PATH, "rb") as f:
+            return serialization.load_pem_parameters(f.read())
 
 
 if __name__ == "__main__":

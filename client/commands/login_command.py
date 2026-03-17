@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 from tkinter import messagebox
 
 from client.commands.basic_commands import Command

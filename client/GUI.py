@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 import tkinter as tk
 from tkinter import messagebox
 
@@ -10,6 +11,7 @@ from client.pages.send_message import MessengerPage
 from client.pages.verify_account import VerifyPage
 from client.pages.verify_forgot import ForgotCodePage
 from client.pages.reset_password import ResetPasswordPage
+from client.pages.settings import SettingsPage
 from client.commands.basic_commands import CommandScheduler, Command
 from client.GUI_constants import GUIConstants
 
@@ -32,7 +34,8 @@ class App(tk.Tk, ControllerInterface):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        for PageClass in (LoginPage, SignUpPage, ForgotPage, MessengerPage, VerifyPage, ForgotCodePage, ResetPasswordPage):
+        for PageClass in (LoginPage, SignUpPage, ForgotPage, MessengerPage, VerifyPage,
+                           ForgotCodePage, ResetPasswordPage, SettingsPage):
             page = PageClass(container, self)
             self.m_links[PageClass.PAGE_ID] = page
 
@@ -46,7 +49,7 @@ class App(tk.Tk, ControllerInterface):
 
         self.scheduler().register_command(Command(self, execute=self.backend().update))
 
-        self.goto(LoginPage)
+        self.goto(SettingsPage)
 
         self.scheduler().periodic()
 

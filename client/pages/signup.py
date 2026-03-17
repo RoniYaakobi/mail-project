@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 from client.pages.page import Page, PageType
 from tkinter import messagebox
 

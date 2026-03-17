@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 import tkinter as tk
 from typing import Callable
 

@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 import socket
 import threading 
 
@@ -25,18 +26,26 @@ class AppBackend:
         self.errors = []
         self.lock = threading.Lock()
 
-        self.updateThread = threading.Thread(target=self.update, daemon=True)
-        self.updateThread.start()
-
-        self.cipher_mode = None
+        self.connected = False
+        self.connecting = False
+        self.encryption_type = None
 
         self.username = None
         self.email = None
         self.password = None
         self.code = None
 
-    def set_cipher_mode(self, cipher_mode):
-        self.cipher_mode = cipher_mode
+    def set_encryption_type(self, encryption_type):
+        self.encryption_type = encryption_type
+
+    def is_connected(self):
+        return self.connected
+    
+    def is_connecting(self):
+        return self.connecting
+    
+    def get_lock(self):
+        return self.lock
 
     def set_password(self, password):
         self.password = password
@@ -69,10 +78,16 @@ class AppBackend:
         self.code = None
 
     def connect(self):
-        if self.cipher_mode == ProtocolConstants.EncryptionType.RSA:
-            return self.socket.connect_rsa() 
+        self.connecting = True
+        if self.encryption_type == ProtocolConstants.EncryptionType.RSA:
+            self.connected = self.socket.connect_rsa() 
         else:
-            return self.socket.connect_dh()
+            self.connected = self.socket.connect_dh()
+
+        self.connecting = False
+        if (self.connected):
+            self.updateThread = threading.Thread(target=self.update, daemon=True)
+            self.updateThread.start()
 
     def login(self):
         self.socket.send_with_size(self.socket.build_request(ProtocolConstants.CODES["login"], self.username, self.password))

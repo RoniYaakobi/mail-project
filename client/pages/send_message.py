@@ -1,3 +1,4 @@
+__author__ = "RONI YAAKOBI"
 from tkinter import messagebox
 
 from protocol.protocol_constants import ProtocolConstants
